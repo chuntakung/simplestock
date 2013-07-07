@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link type="text/css" rel="stylesheet" href="/stylesheets/index.css"/>
+        <script type="text/javascript" src="/apis/jquery-1.10.1.min.js"></script>
+        <script type="text/javascript" src="/flot/jquery.flot.min.js"></script>
+        <script type="text/javascript" src="/flot/jquery.flot.js"></script>
+        <script type="text/javascript" src="/flot/jshashtable-2.1.js"></script>    
+        <script type="text/javascript" src="/flot/jquery.numberformatter-1.2.3.js"></script>    
+        <script type="text/javascript" src="/flot/jquery.flot.time.js"></script>
+        <script type="text/javascript" src="/flot/jquery.flot.symbol.js"></script>
+        <script type="text/javascript" src="/flot/jquery.flot.axislabels.js"></script>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>SimpleStock</title>
+    </head>
+    <body>
+        <div id="navibar">
+            
+			<ul>
+				<li><a href="/">首頁</a></li>
+			</ul>
+        </div>
+        <div id="main">
+            <div id="macro">
+                <h1>總體經濟</h1>
+                <div id="user-options">
+                    <form>
+                        <h3>---綜合指標---</h3>
+                        <input type="checkbox" id="score"/>
+                            <label for="score">景氣對策信號</label>                        
+                        <h3>---領先指標---</h3>
+                        <input type="checkbox" id="advanced_score" value="advanced_score" onchange="toggle_plot(this)"/>
+                            <label for="advanced_indicator">景氣領先指標綜合指數</label><br>
+                            <input type="checkbox" id="export"/>
+                            <label for="export">外銷訂單指數</label><br>
+                            <input type="checkbox" id="m1b"/>
+                            <label for="m1b">貨幣總計數 M1B</label><br>
+                            <input type="checkbox" id="stock_index"/>
+                            <label for="stock_index">股價指數</label><br>
+                            <input type="checkbox" id="stock"/>
+                            <label for="stock">製造業存貨量指數</label><br>                        
+
+                        <h3>---同時指標---</h3>
+                            <input type="checkbox" id="concurrent_score"/>
+                            <label for="concurrent_score">景氣同時指標綜合指數</label><br>
+                            <input type="checkbox" id="industry_index"/>
+                            <label for="industry_index">工業生產指數</label><br>
+                            <input type="checkbox" id="custom_export"/>
+                            <label for="custom_export">海關出口值</label><br>
+                            <input type="checkbox" id="manufacturer_index"/>
+                            <label for="manufacturer_index">製造業銷售量指數</label><br>                      
+                            <input type="checkbox" id="commercial_index"/>
+                            <label for="commercial_index">商業營業額指數</label><br>                  
+
+                        <h3>---落後指標---</h3>
+                            <input type="checkbox" id="lag_score"/>
+                            <label for="lag_score">景氣落後指標綜合指數</label><br>
+                            <input type="checkbox" id="unemployment_rate"/>
+                            <label for="unemployment_rate">失業率</label><br>
+                            <input type="checkbox" id="loans"/>
+                            <label for="loans">全體貨幣機構放款與投資</label><br>
+                            <input type="checkbox" id="industry_stock_rate"/>
+                            <label for="industry_stock_rate">製造業存貨率</label><br>
+                    </form>
+                </div>
+                <div id="macro_plot_canvas">
+                
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+
+<script>
+    //var data = {{data}};
+function data_for_plot(data, datatype){
+    this.series = new Array();   
+    this.name;	
+    var splitresult;
+	var year;
+	var month;
+	
+	this.name = data[0][1];
+	
+    for(var i=1; i< data.length-1 ; i++)
+    {
+    	splitresult = data[i][0].split("-");
+		year = splitresult[0];
+		month = splitresult[1];
+    	
+    	this.series[i]=[(new Date(year, month).getTime()), data[i][1]];
+    }
+    
+    
+    this.get_plot_series = function(ask_year,name){
+        var d = this.series.slice((5-ask_year)*12);
+        return     [{
+            label: this.name,
+            data: d,
+            color: "#FF0000",
+            points: { fillColor: "#FF0000", show: true },
+            lines: { show: true }
+        }];
+    };
+	
+    this.options  = {
+        series: {
+            points: {
+                radius: 3,
+                fill: true,
+                show: true            
+            }
+        },
+        xaxis: {
+            mode: 'time',
+            axisLabel:"時間(月)",
+            axisLabelUseCanvas: true,
+            axisLabelFontSizePixels: 12 ,
+            axisLabelFontFamily: 'Arial',
+            axisLabelPadding: 10
+        },
+        yaxis: {
+                axisLabel: this.name,
+                axisLabelUseCanvas: true,
+                axisLabelFontSizePixels: 12,
+                axisLabelFontFamily: 'Verdana, Arial',
+                axisLabelPadding: 3
+       },
+        grid: {
+            hoverable: true,
+            borderWidth: 2,
+            borderColor: "#633200",
+            backgroundColor: { colors: ["#ffffff", "#EDF5FF"] }
+        },
+        legend: {
+            noColumns: 0,
+            labelBoxBorderColor: "#000000",
+            position: "nw"
+        }
+    };
+};
+
+$(document).ready(function () {
+    draw(5); //default plot datatype 1
+});
+
+
+function redraw(year, obj, plotobj){
+        plotobj.setData(obj.get_plot_series(year));
+        plotobj.setupGrid();
+        plotobj.draw();
+};
+function draw(datatype){
+    if (datatype===0) $.plot($("#macro_plot_canvas"), [] , {});
+
+		// dynamic request json data 
+		var return_data;
+		$.ajax({
+			url:"http://localhost:8080/data.json?datatype=" + datatype,
+			dataType: "json",
+			async: false,
+			success: function(json){
+				return_data = json;
+			}}
+		);
+		var plotdata =  new data_for_plot(return_data, datatype);
+		plotobj = $.plot($("#macro_plot_canvas"), plotdata.get_plot_series(5) , plotdata.options);
+        $("#macro_plot_canvas").UseTooltip();
+        $("#1y").click(function(){
+            redraw(1,plotdata, plotobj);
+        });
+        $("#2y").click(function(){
+            redraw(2,plotdata, plotobj);
+        });
+        $("#5y").click(function(){
+            redraw(5,plotdata, plotobj);
+        });
+};
+
+var previousPoint = null, previousLabel = null;
+$.fn.UseTooltip = function () {
+    $(this).bind("plothover", function (event, pos, item) { //hover over the canvas
+        if (item) {
+            if ((previousLabel !== item.series.label) || (previousPoint !== item.dataIndex)) {
+                previousPoint = item.dataIndex;
+                previousLabel = item.series.label;
+                $("#tooltip").remove();
+
+                var x = item.datapoint[0];
+                var y = item.datapoint[1];
+
+                var color = item.series.color;
+                var month = new Date(x).getMonth();
+                var year = new Date(x).getFullYear();
+
+                //console.log(item);
+
+                showTooltip(item.pageX,
+                item.pageY,
+                color,
+                "<strong>" + item.series.label + "</strong><br>" + year +"-" + month + " : <strong>" + y + "</strong>");
+            }
+        } 
+        else {
+            $("#tooltip").remove();
+            previousPoint = null;
+        }
+    });
+};
+
+function showTooltip(x, y, color, contents) {
+    $('<div id="tooltip">' + contents + '</div>').css({
+        position: 'absolute',
+        display: 'none',
+        top: y - 40,
+        left: x - 120,
+        border: '2px solid ' + color,
+        padding: '3px',
+        'font-size': '9px',
+        'border-radius': '5px',
+        'background-color': '#fff',
+        'font-family': 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
+        opacity: 0.9
+    }).appendTo("body").fadeIn(200);
+};
+
+function toggle_plot(cb){
+    if(cb.checked){
+      if(cb.value === "advanced_score"){
+          draw(1);
+      };
+    }
+    else{
+        draw(0);
+    }
+};
+	
+</script>
