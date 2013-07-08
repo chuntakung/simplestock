@@ -26,40 +26,40 @@
                 <div id="user-options">
                     <form>
                         <h3>---綜合指標---</h3>
-                        <input type="checkbox" id="score"/>
-                            <label for="score">景氣對策信號</label>                        
+                        <input type="checkbox" id="score" value="score" class="macro_chkbox"/>
+                        <label for="score">景氣對策信號</label>                        
                         <h3>---領先指標---</h3>
-                        <input type="checkbox" id="advanced_score" value="advanced_score" onchange="toggle_plot(this)"/>
+                        <input type="checkbox" id="advanced_score" value="advanced_score" class="macro_chkbox"/>
                             <label for="advanced_indicator">景氣領先指標綜合指數</label><br>
-                            <input type="checkbox" id="export"/>
+                            <input type="checkbox" id="export" value="export" class="macro_chkbox"/>
                             <label for="export">外銷訂單指數</label><br>
-                            <input type="checkbox" id="m1b"/>
+                            <input type="checkbox" id="m1b" value="m1b" class="macro_chkbox"/>
                             <label for="m1b">貨幣總計數 M1B</label><br>
-                            <input type="checkbox" id="stock_index"/>
+                            <input type="checkbox" id="stock_index" value="stock_index" class="macro_chkbox"/>
                             <label for="stock_index">股價指數</label><br>
-                            <input type="checkbox" id="stock"/>
+                            <input type="checkbox" id="stock" value="stock" class="macro_chkbox"/>
                             <label for="stock">製造業存貨量指數</label><br>                        
 
                         <h3>---同時指標---</h3>
-                            <input type="checkbox" id="concurrent_score"/>
+                            <input type="checkbox" id="concurrent_score" value="concurrent_score" class="macro_chkbox"/>
                             <label for="concurrent_score">景氣同時指標綜合指數</label><br>
-                            <input type="checkbox" id="industry_index"/>
+                            <input type="checkbox" id="industry_index" value="industry_index" class="macro_chkbox"/>
                             <label for="industry_index">工業生產指數</label><br>
-                            <input type="checkbox" id="custom_export"/>
+                            <input type="checkbox" id="custom_export" value="custom_export" class="macro_chkbox"/>
                             <label for="custom_export">海關出口值</label><br>
-                            <input type="checkbox" id="manufacturer_index"/>
+                            <input type="checkbox" id="manufacturer_index" value="manufacturer_index" class="macro_chkbox"/>
                             <label for="manufacturer_index">製造業銷售量指數</label><br>                      
-                            <input type="checkbox" id="commercial_index"/>
+                            <input type="checkbox" id="commercial_index" value="commercial_index" class="macro_chkbox"/>
                             <label for="commercial_index">商業營業額指數</label><br>                  
 
                         <h3>---落後指標---</h3>
-                            <input type="checkbox" id="lag_score"/>
+                            <input type="checkbox" id="lag_score" value="lag_score" class="macro_chkbox"/>
                             <label for="lag_score">景氣落後指標綜合指數</label><br>
-                            <input type="checkbox" id="unemployment_rate"/>
+                            <input type="checkbox" id="unemployment_rate" value="unemployment_rate" class="macro_chkbox"/>
                             <label for="unemployment_rate">失業率</label><br>
-                            <input type="checkbox" id="loans"/>
+                            <input type="checkbox" id="loans" value="loans" class="macro_chkbox"/>
                             <label for="loans">全體貨幣機構放款與投資</label><br>
-                            <input type="checkbox" id="industry_stock_rate"/>
+                            <input type="checkbox" id="industry_stock_rate" value="industry_stock_rate" class="macro_chkbox"/>
                             <label for="industry_stock_rate">製造業存貨率</label><br>
                     </form>
                 </div>
@@ -71,39 +71,11 @@
     </body>
 </html>
 
-<script>
+<script type="text/javascript">
     //var data = {{data}};
-function data_for_plot(data, datatype){
-    this.series = new Array();   
-    this.name;	
-    var splitresult;
-	var year;
-	var month;
-	
-	this.name = data[0][1];
-	
-    for(var i=1; i< data.length-1 ; i++)
-    {
-    	splitresult = data[i][0].split("-");
-		year = splitresult[0];
-		month = splitresult[1];
-    	
-    	this.series[i]=[(new Date(year, month).getTime()), data[i][1]];
-    }
     
-    
-    this.get_plot_series = function(ask_year,name){
-        var d = this.series.slice((5-ask_year)*12);
-        return     [{
-            label: this.name,
-            data: d,
-            color: "#FF0000",
-            points: { fillColor: "#FF0000", show: true },
-            lines: { show: true }
-        }];
-    };
-	
-    this.options  = {
+function get_options(name){
+    return options  = {
         series: {
             points: {
                 radius: 3,
@@ -120,7 +92,7 @@ function data_for_plot(data, datatype){
             axisLabelPadding: 10
         },
         yaxis: {
-                axisLabel: this.name,
+                axisLabel: name,
                 axisLabelUseCanvas: true,
                 axisLabelFontSizePixels: 12,
                 axisLabelFontFamily: 'Verdana, Arial',
@@ -141,8 +113,67 @@ function data_for_plot(data, datatype){
 };
 
 $(document).ready(function () {
-    draw(5); //default plot datatype 1
+    //register eventhandler to checkboxes
+    $('.macro_chkbox').change(chkbox_update);
+    //draw(0); //default plot datatype 1
 });
+
+var plotobj;
+function chkbox_update(){
+    
+    if($('.macro_chkbox:checked').length>0){
+        var dataset = new Array();
+        var options;
+        var datatype;
+        var series_and_name;
+        var current_option;
+        for(var i=0; i< $('.macro_chkbox:checked').length; i++)
+        {
+            datatype = mapping_from_value_to_datatype[this.value];
+            series_and_name = get_data(datatype);
+            dataset.push(series_and_name[0]);
+            current_option = get_options(series_and_name[1]);
+            if(i===0)
+                options = current_option;
+            else{
+                if(options.hasOwnProperty("yaxis")){
+                    var temp_yaxis_option = [options["yaxis"]];
+                    delete options["yaxis"];
+                    temp_yaxis_option.push( current_option["yaxis"] );
+                    options["yaxes"] = temp_yaxis_option;
+                }
+                else{
+                    var temp_yaxis_option = options["yaxes"];
+                    temp_yaxis_option.push( current_option["yaxis"] );
+                    options["yaxes"] = temp_yaxis_option;
+                    
+                };                    
+            };
+                       
+        };
+        plotobj = $.plot($("#macro_plot_canvas"), dataset , options);
+        $("#macro_plot_canvas").UseTooltip();        
+
+    }
+};
+
+var mapping_from_value_to_datatype={
+    "score": 5, 
+    "advanced_score": 1,
+    "lag_score":43,
+    "concurrent_score":3,
+    "export":7,
+    "m1b":8,
+    "stock_index":9,
+    "stock":10,
+    "industry_index":14,
+    "commercial_index":17,
+    "custom_export":19,
+    "manufacturer_index":42,
+    "unemployment_rate":45,
+    "loans":49,
+    "industry_stock_rate":50
+};
 
 
 function redraw(year, obj, plotobj){
@@ -150,6 +181,47 @@ function redraw(year, obj, plotobj){
         plotobj.setupGrid();
         plotobj.draw();
 };
+
+function get_data(datatype){
+    var data;
+    $.ajax({
+            url:"http://localhost:8080/data.json?datatype=" + datatype,
+            dataType: "json",
+            async: false,
+            success: function(json){
+                    data = json;
+            }}
+    );
+    
+    var series = new Array();   
+    var splitresult;
+    var year;
+    var month;
+    var name;
+	
+    name = data[0][1];
+    for(var i=1; i< data.length-1 ; i++)
+    {
+    	splitresult = data[i][0].split("-");
+        year = splitresult[0];
+        month = splitresult[1];
+    	
+    	series[i-1]=[(new Date(year, month).getTime()), data[i][1]];
+    }
+        
+    return [format_series(series, name),name];
+};
+
+function format_series(raw_series, name){
+    return {
+            label: name,
+            data: raw_series,
+            color: "#FF0000",
+            points: { fillColor: "#FF0000", show: true },
+            lines: { show: true }
+    };
+};
+
 function draw(datatype){
     if (datatype===0) $.plot($("#macro_plot_canvas"), [] , {});
 
@@ -224,6 +296,8 @@ function showTooltip(x, y, color, contents) {
     }).appendTo("body").fadeIn(200);
 };
 
+
+/*
 function toggle_plot(cb){
     if(cb.checked){
       if(cb.value === "advanced_score"){
@@ -232,7 +306,7 @@ function toggle_plot(cb){
     }
     else{
         draw(0);
-    }
-};
+    };
+};*/
 	
 </script>
