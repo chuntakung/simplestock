@@ -13,9 +13,12 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 class MainPage(webapp2.RequestHandler):
 
     def get(self):
-
+        url = 'http://index.cepd.gov.tw/Result.aspx?lang=1&type=it02&p=1^1^2008,6,2013,6^^,,^SR0001,SR0007,SR0008,SR0009,SR0010,SR0003,SR0014,SR0017,SR0019,SR0042,SR0043,SR0045,SR0049,SR0050,^'
+        parser = Cepd_parser()
+        parser.feed(parser.fetch_url(url))
+        template_values  = {"data": json.dumps(parser.out)}
         template = JINJA_ENVIRONMENT.get_template('index.html')
-        self.response.write(template.render())
+        self.response.write(template.render(template_values))
 
 class MacroPage(webapp2.RequestHandler):
     def get(self):
